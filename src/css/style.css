@@ -1,0 +1,85 @@
+body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Fondo oscuro similar a un ambiente lovecraftiano */
+        }
+        /* Clase para prevenir el scroll del cuerpo cuando el modal está abierto */
+        body.no-scroll {
+            overflow: hidden;
+        }
+        .login-container, .catalog-container {
+            transition: opacity 0.5s ease-in-out;
+        }
+        .hidden {
+            display: none;
+        }
+        /* Estilos para el modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.3s ease-in-out;
+            padding: 1rem; /* Añadido para espacio en móviles */
+        }
+        .modal-content {
+            background-color: #1e293b; /* Color de fondo del modal */
+            padding: 2rem;
+            border-radius: 1rem;
+            max-width: 800px; /* Aumentado el ancho máximo para más contenido */
+            width: 95%; /* Ajuste para mejor responsividad */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            position: relative;
+            transform: scale(0.95);
+            transition: transform 0.3s ease-in-out;
+            overflow-y: auto; /* Permite scroll dentro del modal si el contenido es largo */
+            max-height: 95vh; /* Limita la altura del modal para que quepa en la pantalla */
+        }
+        .modal-overlay.opacity-100 .modal-content {
+            transform: scale(1);
+        }
+        .close-button {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #cbd5e0;
+            cursor: pointer;
+            z-index: 1001; /* Asegura que el botón esté encima del contenido */
+        }
+        .modal-section-title {
+            font-size: 1.5rem; /* text-2xl */
+            font-weight: 600; /* font-semibold */
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            color: #a78bfa; /* purple-400 */
+        }
+        .modal-sub-title {
+            font-weight: 500; /* font-medium */
+            color: #d1d5db; /* gray-300 */
+            margin-top: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+        .modal-text {
+            font-size: 0.875rem; /* text-sm */
+            line-height: 1.5rem; /* leading-relaxed */
+            color: #cbd5e0; /* gray-200 */
+            margin-bottom: 0.5rem;
+        }
+        ul.modal-list {
+            list-style-type: disc;
+            margin-left: 1.25rem;
+            padding-left: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        ul.modal-list li {
+            margin-bottom: 0.25rem;
+            color: #cbd5e0; /* gray-200 */
+        }
