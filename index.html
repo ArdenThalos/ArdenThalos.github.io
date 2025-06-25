@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo de Monstruos de Lovecraft</title>
+    <!-- Incluir Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configuración de Tailwind para usar la fuente Inter y habilitar el modo JIT -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Fondo oscuro similar a un ambiente lovecraftiano */
+        }
+        /* Clase para prevenir el scroll del cuerpo cuando el modal está abierto */
+        body.no-scroll {
+            overflow: hidden;
+        }
+        .login-container, .catalog-container {
+            transition: opacity 0.5s ease-in-out;
+        }
+        .hidden {
+            display: none;
+        }
+        /* Estilos para el modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.3s ease-in-out;
+            padding: 1rem; /* Añadido para espacio en móviles */
+        }
+        .modal-content {
+            background-color: #1e293b; /* Color de fondo del modal */
+            padding: 2rem;
+            border-radius: 1rem;
+            max-width: 800px; /* Aumentado el ancho máximo para más contenido */
+            width: 95%; /* Ajuste para mejor responsividad */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            position: relative;
+            transform: scale(0.95);
+            transition: transform 0.3s ease-in-out;
+            overflow-y: auto; /* Permite scroll dentro del modal si el contenido es largo */
+            max-height: 95vh; /* Limita la altura del modal para que quepa en la pantalla */
+        }
+        .modal-overlay.opacity-100 .modal-content {
+            transform: scale(1);
+        }
+        .close-button {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #cbd5e0;
+            cursor: pointer;
+            z-index: 1001; /* Asegura que el botón esté encima del contenido */
+        }
+        .modal-section-title {
+            font-size: 1.5rem; /* text-2xl */
+            font-weight: 600; /* font-semibold */
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            color: #a78bfa; /* purple-400 */
+        }
+        .modal-sub-title {
+            font-weight: 500; /* font-medium */
+            color: #d1d5db; /* gray-300 */
+            margin-top: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+        .modal-text {
+            font-size: 0.875rem; /* text-sm */
+            line-height: 1.5rem; /* leading-relaxed */
+            color: #cbd5e0; /* gray-200 */
+            margin-bottom: 0.5rem;
+        }
+        ul.modal-list {
+            list-style-type: disc;
+            margin-left: 1.25rem;
+            padding-left: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        ul.modal-list li {
+            margin-bottom: 0.25rem;
+            color: #cbd5e0; /* gray-200 */
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 p-4">
+
+    <div id="login-wrapper" class="min-h-screen flex items-center justify-center">
+        <div id="login-section" class="login-container bg-gray-800 p-8 rounded-lg shadow-xl w-full max-w-md">
+            <h2 class="text-3xl font-bold text-center mb-6 text-purple-400">Acceso Restringido</h2>
+            <div class="mb-4">
+                <label for="password-input" class="block text-gray-300 text-sm font-bold mb-2">Contraseña:</label>
+                <input type="password" id="password-input" class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-100 leading-tight focus:outline-none focus:ring-2 focus:ring-purple-500 bg-gray-700 border-gray-600" placeholder="Introduce la contraseña">
+            </div>
+            <button id="login-button" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300 ease-in-out transform hover:scale-105">
+                Ingresar
+            </button>
+            <p id="error-message" class="text-red-500 text-sm italic mt-4 text-center hidden">Contraseña incorrecta. Por favor, intenta de nuevo.</p>
+        </div>
+    </div>
+
+    <!-- Contenedor del Catálogo de Monstruos -->
+    <div id="catalog-section" class="catalog-container hidden opacity-0 w-full p-4 md:p-8">
+        <h1 class="text-4xl font-extrabold text-center mb-8 text-purple-300">Catálogo de Horrores Lovecraftianos</h1>
+
+        <!-- Contenedores de filtro -->
+        <div class="mb-8 flex flex-col sm:flex-row justify-center items-center gap-4">
+            <!-- Filtro por Nombre -->
+            <div class="max-w-xl w-full sm:w-1/2">
+                <label for="filter-input" class="block text-gray-300 text-sm font-bold mb-2">Filtrar por Nombre:</label>
+                <input type="text" id="filter-input" placeholder="Buscar por nombre..."
+                       class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-100 leading-tight
+                              focus:outline-none focus:ring-2 focus:ring-purple-500 bg-gray-700 border-gray-600">
+            </div>
+
+            <!-- Filtro por Categoría -->
+            <div class="max-w-xl w-full sm:w-1/2">
+                <label for="category-select" class="block text-gray-300 text-sm font-bold mb-2">Filtrar por Categoría:</label>
+                <select id="category-select"
+                        class="shadow appearance-none border rounded-lg w-full py-3 px-4 text-gray-100 leading-tight
+                               focus:outline-none focus:ring-2 focus:ring-purple-500 bg-gray-700 border-gray-600">
+                    <option value="">Todas las Categorías</option>
+                    <option value="Dioses Exteriores">Dioses Exteriores</option>
+                    <option value="Primigenios (Great Old Ones)">Primigenios (Great Old Ones)</option>
+                    <option value="Razas alienígenas">Razas alienígenas</option>
+                    <option value="Criaturas menores">Criaturas menores</option>
+                    <option value="Entidades del tiempo/espacio">Entidades del tiempo/espacio</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="monster-cards-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 min-h-[600px]">
+            <!-- Las tarjetas de monstruos se insertarán aquí dinámicamente -->
+            <!-- Se ha añadido min-h-[600px] para evitar que el contenedor se encoja al filtrar -->
+        </div>
+    </div>
+
+    <!-- Modal para ver más información del monstruo -->
+    <div id="monster-detail-modal" class="modal-overlay hidden opacity-0">
+        <div class="modal-content text-gray-100">
+            <button class="close-button" id="close-modal-button">&times;</button>
+            <!-- Contenido detallado del monstruo se insertará aquí dinámicamente -->
+            <div id="modal-details-content">
+                <!-- La imagen, nombre y descripción completa se cargarán aquí -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Referencias a elementos HTML
+            const loginWrapper = document.getElementById('login-wrapper');
+            const loginSection = document.getElementById('login-section');
+            const catalogSection = document.getElementById('catalog-section');
+            const passwordInput = document.getElementById('password-input');
+            const loginButton = document.getElementById('login-button');
+            const errorMessage = document.getElementById('error-message');
+            const monsterCardsContainer = document.getElementById('monster-cards-container');
+            const filterInput = document.getElementById('filter-input');
+            const categorySelect = document.getElementById('category-select'); // Nuevo: select de categoría
+
+            // Referencias a elementos del modal
+            const monsterDetailModal = document.getElementById('monster-detail-modal');
+            const closeModalButton = document.getElementById('close-modal-button');
+            const modalDetailsContent = document.getElementById('modal-details-content');
+
+            // Contraseña requerida
+            const CORRECT_PASSWORD = 'HSB';
+
+            // Datos de monstruos de H.P. Lovecraft con información ampliada
+            const monsters = [
+                {
+                    name: "Cthulhu",
+                    category: "Primigenios (Great Old Ones)",
+                    alias: ["Gran Sacerdote de los Antiguos", "El Que Espera Soñando"],
+                    entityType: "Primigenio",
+                    description: "Una entidad cósmica antigua, Gran Sacerdote de los Antiguos, que yace dormido en la ciudad sumergida de R'lyeh.",
+                    fullDescription: "Cthulhu es una deidad cósmica creada por H.P. Lovecraft y es una de las principales entidades de su mitología. Se describe como una criatura gigantesca que se asemeja vagamente a un pulpo, un dragón y una caricatura de forma humana, con alas membranosas y una cabeza con tentáculos. Reside en la ciudad hundida de R'lyeh en el Pacífico, esperando ser despertado para traer una era de locura a la Tierra. Su influencia puede sentirse a través de sueños y telepáticamente.",
+                    image: "assets/img/Cthulhu_1.png",
+                    firstAppearance: "La Llamada de Cthulhu (1928)",
+                    origin: "Desconocido (posiblemente de una estrella binaria en la Galaxia M101), reside en R'lyeh (Tierra)",
+                    affiliation: "Parte de los Primigenios, adoran a Azathoth",
+                    supernaturalCharacteristics: ["Inmortalidad", "Telepatía que induce locura", "Regeneración"],
+                    knownManifestations: ["Apariciones en sueños de artistas sensibles", "Revelaciones en cultos", "Presencia oculta en R'lyeh"],
+                    madnessLevel: "Catastrófico (contacto directo puede causar locura incurable o muerte)",
+                    associatedSymbols: ["Símbolo de R'lyeh", "Estatuillas grotescas"],
+                    cults: ["Culto de Cthulhu (global, especialmente en el Pacífico Sur)"],
+                    mythologicalInspiration: "Mitos sumerios (aspectos de dioses primigenios), fantasía de horror (Lord Dunsany)",
+                    relatedAuthors: ["H.P. Lovecraft", "August Derleth", "Clark Ashton Smith"],
+                    modernAdaptations: ["The Call of Cthulhu RPG", "Juegos como Bloodborne y Eldritch Horror", "Numerosos cómics y películas", "Cultura pop general"],
+                    notableQuotes: ["'Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn. En su morada de R'lyeh, el difunto Cthulhu espera soñando.'"],
+                    location: "Ciudad sumergida de R'lyeh, Océano Pacífico (Latitud 47°9'S, Longitud 126°43'O)",
+                    threatLevel: "Catastrófico"
+                },
+                {
+                    name: "Azathoth",
+                    category: "Dioses Exteriores",
+                    alias: ["El Caos Nuclear", "El Dios Ciego e Idiota", "El Demon Sultan"],
+                    entityType: "Dios Exterior (Deidad Suprema)",
+                    description: "El 'Demon Sultan', la deidad suprema de los Mitos de Cthulhu, que existe en el centro del universo.",
+                    fullDescription: "Azathoth es el gobernante supremo de los Mitos de Cthulhu, el 'Caos Nuclear' o 'Demon Sultan'. Es una masa informe y sin mente de caos primordial que reside en el centro del universo, constantemente devorando y recreando la realidad. Es tan inmenso y poderoso que su mera existencia es un peligro para toda la creación. Está rodeado por una corte de deidades menores que bailan y tocan flautas demoníacas para mantenerlo en un estado de letargo, ya que si despertara, toda la existencia cesaría.",
+                    image: "assets/img/Azathoth_1.png",
+                    firstAppearance: "Azathoth (fragmento, 1922)",
+                    origin: "El centro del universo, fuera del espacio y el tiempo conocidos",
+                    affiliation: "Ninguna (es la fuente de todo)",
+                    supernaturalCharacteristics: ["Omnipotencia (inconsciente)", "Creación y destrucción de universos", "Realidad maleable"],
+                    knownManifestations: ["Nunca aparece directamente a los mortales; su influencia es indirecta y apocalíptica"],
+                    madnessLevel: "Apocalíptico (su despertar significaría el fin de la realidad)",
+                    associatedSymbols: ["El caos en sí mismo"],
+                    cults: ["No tiene cultos directos; las deidades y seres menores le rinden homenaje sin comprenderlo"],
+                    mythologicalInspiration: "Deidades primordiales de la mitología babilónica y griega (Caos, Urano)",
+                    relatedAuthors: ["H.P. Lovecraft"],
+                    modernAdaptations: ["Referenciado en muchos juegos de los Mitos, como el juego de cartas Call of Cthulhu LCG"],
+                    notableQuotes: ["'Fuera del universo, entre las esferas que giran insensatamente, donde ningún pensamiento pudo nunca llegar, se oculta el Caos Nuclear definitivo.'"],
+                    location: "El centro de la totalidad, fuera del tiempo y el espacio",
+                    threatLevel: "Catastrófico (existencial)"
+                },
+                {
+                    name: "Nyarlathotep",
+                    category: "Dioses Exteriores",
+                    alias: ["El Caos Reptante", "El Mensajero Exterior", "El Dios de las Mil Formas"],
+                    entityType: "Dios Exterior (Avatar/Mensajero)",
+                    description: "El 'Caos Reptante', una deidad cambiante y astuta, con mil formas, que sirve como mensajero y avatar de Azathoth.",
+                    fullDescription: "Nyarlathotep es único entre los Dioses Exteriores por su activo contacto con la humanidad. Conocido como el 'Caos Reptante', toma mil formas y es el mensajero, el alma y el corazón de Azathoth. Viaja por el cosmos y se deleita en la locura y la desesperación que causa. A menudo se le representa como un hombre alto y delgado, pero puede manifestarse como una criatura Lovecraftiana indescriptible o como cualquier forma imaginable. Es un ser cruel, manipulador e inteligente, a diferencia de Azathoth.",
+                    image: "assets/img/Nyarlathotep_1.png",
+                    firstAppearance: "Nyarlathotep (1920)",
+                    origin: "El Vacío Exterior",
+                    affiliation: "Sirviente y avatar de Azathoth",
+                    supernaturalCharacteristics: ["Cambio de forma ilimitado", "Manipulación de la realidad", "Inducción de locura", "Telepatía"],
+                    knownManifestations: ["Numerosas formas humanoides y monstruosas", "Apariciones en cultos como orador o guía", "Pesadillas y visiones"],
+                    madnessLevel: "Alto (interacción prolongada resulta en locura o conversión)",
+                    associatedSymbols: ["La Cara Negra", "Jeroglíficos extraños"],
+                    cults: ["Tiene muchos cultos diversos, ya que se adapta a las creencias locales, a menudo bajo la apariencia de un líder o profeta"],
+                    mythologicalInspiration: "Deidades egipcias (ej. Thoth), figuras trickster de diversas mitologías",
+                    relatedAuthors: ["H.P. Lovecraft", "Clark Ashton Smith", "Robert Bloch"],
+                    modernAdaptations: ["Numerosos juegos (Arkham Horror, Call of Cthulhu RPG)", "Mencionado en muchas obras de horror cósmico"],
+                    notableQuotes: ["'Y después vino Nyarlathotep, que no era ni humano ni parecido a los demás. Se movía entre ellos con rostro de hombre.'"],
+                    location: "En todas partes (sin ubicación fija)",
+                    threatLevel: "Catastrófico (por manipulación y corrupción)"
+                },
+                {
+                    name: "Yog-Sothoth",
+                    category: "Dioses Exteriores",
+                    alias: ["El Todo en Uno", "El Uno en Todo", "El Que Abre el Camino", "La Llave y la Puerta"],
+                    entityType: "Dios Exterior (Omnisciente, Espacio-Tiempo)",
+                    description: "Una deidad exterior omnisciente, con un conocimiento ilimitado, que existe simultáneamente en todas las dimensiones y en todos los tiempos.",
+                    fullDescription: "Yog-Sothoth es una deidad cósmica que encarna el espacio-tiempo y es la puerta a otras dimensiones. Existe en todas partes y en ninguna al mismo tiempo, siendo la clave y el guardián de todas las puertas. Es descrito como una masa de orbes iridiscentes o burbujas que fluyen continuamente. Posee un conocimiento ilimitado de todo el universo y más allá, y a menudo se le invoca para obtener este conocimiento, aunque con terribles consecuencias. Su conocimiento es tan vasto que la mente humana no puede comprenderlo sin enloquecer.",
+                    image: "assets/img/Yog-Sothoth_1.png",
+                    firstAppearance: "El Caso de Charles Dexter Ward (1927, publicado 1941)",
+                    origin: "El Vacío Exterior, más allá de nuestro universo",
+                    affiliation: "Parte de los Dioses Exteriores; es el 'padre' de algunas entidades como Cthulhu (a través de Shub-Niggurath)",
+                    supernaturalCharacteristics: ["Omnisciencia", "Control del espacio y el tiempo", "Poderes interdimensionales", "Puede abrir puertas a otras realidades"],
+                    knownManifestations: ["Apariciones como masas de esferas iridiscentes", "Invocado a través de rituales complejos para obtener conocimiento"],
+                    madnessLevel: "Alto (su mera visión puede llevar a la locura total)",
+                    associatedSymbols: ["Símbolos complejos de interconexión dimensional"],
+                    cults: ["Cultos esotéricos que buscan conocimiento prohibido o el paso a otras dimensiones"],
+                    mythologicalInspiration: "Conceptos de omnisciencia y seres de múltiples dimensiones",
+                    relatedAuthors: ["H.P. Lovecraft", "Clark Ashton Smith"],
+                    modernAdaptations: ["Fundamental en el Call of Cthulhu RPG", "Referenciado en muchas ficciones cósmicas"],
+                    notableQuotes: ["'Yog-Sothoth conoce la puerta. Yog-Sothoth es la puerta. Yog-Sothoth es la llave y el guardián de la puerta.'"],
+                    location: "En todas las dimensiones simultáneamente",
+                    threatLevel: "Catastrófico (por el conocimiento y la apertura dimensional)"
+                },
+                {
+                    name: "Shoggoth",
+                    category: "Criaturas menores",
+                    alias: ["Las Grandes Cosas de las Estrellas"],
+                    entityType: "Criatura menor (construcción biológica)",
+                    description: "Una masa protoplásmica amorfa y multi-ojos, creada por los Antiguos para ser sus sirvientes. Son capaces de formar cualquier órgano que necesiten y pueden imitar voces y formas.",
+                    fullDescription: "Los Shoggoths son seres amorfos y gelatinosos, masas de ojos burbujeantes y formas cambiantes. Fueron creados por los Antiguos (Elder Things) como esclavos biológicos para construir sus vastas ciudades submarinas y terrestres. Inicialmente obedientes, con el tiempo desarrollaron inteligencia propia y se rebelaron contra sus creadores, llevando a su caída. Pueden imitar cualquier forma y sonido, y son increíblemente peligrosos debido a su fuerza, tamaño y adaptabilidad. Su canto 'Tekeli-li!' es escalofriante.",
+                    image: "https://placehold.co/2048x2048/1e293b/a78bfa?text=Shoggoth",
+                    firstAppearance: "En las Montañas de la Locura (1936)",
+                    origin: "Creados en la Tierra por los Antiguos",
+                    affiliation: "Antiguamente sirvientes de los Antiguos, ahora salvajes o independientes",
+                    supernaturalCharacteristics: ["Cambio de forma (cualquier órgano necesario)", "Fuerza y tamaño colosales", "Inteligencia colectiva emergente"],
+                    knownManifestations: ["Encuentros en ruinas antiguas, especialmente submarinas o polares", "Sonidos y voces imitadas"],
+                    madnessLevel: "Medio a Alto (terror abrumador por su aspecto y poder)",
+                    associatedSymbols: ["Formas cambiantes y caóticas"],
+                    cults: ["No tienen cultos; son más bien una fuerza de la naturaleza o un peligro residual"],
+                    mythologicalInspiration: "Horrores primordiales, el concepto de 'masa viviente'",
+                    relatedAuthors: ["H.P. Lovecraft"],
+                    modernAdaptations: ["Apariciones frecuentes en juegos (Mansiones de la Locura), cómics y adaptaciones de Lovecraft"],
+                    notableQuotes: ["'Tekeli-li! Tekeli-li!' (su canto incesante)"],
+                    location: "Ruinas de las ciudades de los Antiguos (Antártida, océanos profundos)",
+                    threatLevel: "Alto (peligro físico y psicológico)"
+                },
+                {
+                    name: "Hastur",
+                    category: "Primigenios (Great Old Ones)",
+                    alias: ["El Innombrable", "El Rey de Amarillo", "Él que No Debe Ser Nombrado"],
+                    entityType: "Primigenio",
+                    description: "El 'Innombrable', una entidad cósmica asociada con Carcosa y el lago Hali. Es un Gran Antiguo, a menudo invocado por cultistas.",
+                    fullDescription: "Hastur es un ser cósmico de los Mitos de Cthulhu, a menudo asociado con el 'Rey de Amarillo' y la ciudad de Carcosa, que se encuentra en una dimensión o realidad alternativa. Es una entidad de inmensa antigüedad y poder, a menudo invocado por cultistas, y su mera mención o el encuentro con sus símbolos puede llevar a la locura y la perdición. Se le relaciona con los vientos, el aire y la peste, y se le considera el 'hermanastro' de Cthulhu.",
+                    image: "https://placehold.co/2048x2048/1e293b/a78bfa?text=Hastur",
+                    firstAppearance: "El Rey de Amarillo (Robert W. Chambers, 1895 - adaptado por Lovecraft)",
+                    origin: "El espacio profundo, posiblemente cerca de la estrella Aldebarán",
+                    affiliation: "Parte de los Primigenios, asociado con los Dioses Exteriores",
+                    supernaturalCharacteristics: ["Inducción de locura por lectura de obras malditas", "Control sobre los vientos", "Presencia interdimensional"],
+                    knownManifestations: ["Su nombre es tabú; puede manifestarse a través de avatares como el Rey de Amarillo", "El Heraldo Silencioso"],
+                    madnessLevel: "Alto (la locura se propaga a través de su influencia)",
+                    associatedSymbols: ["El signo de Hastur", "La Máscara Pálida"],
+                    cults: ["Cultos del Rey de Amarillo, sectas esotéricas en la meseta de Leng"],
+                    mythologicalInspiration: "Historias de horror y misterio de Robert W. Chambers",
+                    relatedAuthors: ["Robert W. Chambers", "H.P. Lovecraft", "August Derleth"],
+                    modernAdaptations: ["Popular en el Call of Cthulhu RPG", "Series como True Detective (referencia al Rey de Amarillo)"],
+                    notableQuotes: ["'No digas su nombre en voz alta.'"],
+                    location: "Estrella Aldebarán (las Híades), meseta de Leng (Tierra)",
+                    threatLevel: "Catastrófico (corrupción mental y existencial)"
+                },
+                {
+                    name: "Dagon",
+                    category: "Primigenios (Great Old Ones)",
+                    alias: ["Padre Dagon", "Dagan"],
+                    entityType: "Deidad menor (Primigenio antiguo / Semidios)",
+                    description: "Una deidad menor, a menudo adorada por los Profundos, criaturas mitad pez, mitad anfibio que habitan en las profundidades del océano.",
+                    fullDescription: "Padre Dagon es una deidad antigua menor, pero venerada por los Profundos (Deep Ones) en las profundidades del océano. Se le describe como una criatura colosal, similar a un pez gigante con características humanoides, y es la pareja de Madre Hydra. Juntos, Dagon y Hydra son los patriarcas de la raza de los Profundos y reciben sacrificios y adoración de sus seguidores híbridos humano-anfibios. Su influencia se centra en las comunidades costeras y en aquellos que caen bajo el control de los Profundos.",
+                    image: "https://placehold.co/2048x2048/1e293b/a78bfa?text=Dagon",
+                    firstAppearance: "Dagon (1917)",
+                    origin: "Los océanos profundos de la Tierra",
+                    affiliation: "Deidad patrona de los Profundos, posiblemente sirviente de Cthulhu o deidades mayores",
+                    supernaturalCharacteristics: ["Influencia sobre las criaturas marinas", "Inmortalidad", "Tamaño y fuerza colosales"],
+                    knownManifestations: ["Apariciones como ídolos grotescos o en visiones", "A veces se manifiesta en su forma completa en las profundidades"],
+                    madnessLevel: "Bajo a Medio (terror, conversión al culto)",
+                    associatedSymbols: ["Figuras de peces con rasgos humanoides", "Símbolos acuáticos"],
+                    cults: ["Culto de Dagon (adorado por los Profundos y sus híbridos humanos, especialmente en Innsmouth)"],
+                    mythologicalInspiration: "Deidad semítica del Medio Oriente, Dagan, asociada con la agricultura y la fertilidad (reinterpretada por Lovecraft)",
+                    relatedAuthors: ["H.P. Lovecraft"],
+                    modernAdaptations: ["Referenciado en La Sombra sobre Innsmouth", "Juegos y cómics de los Mitos de Cthulhu"],
+                    notableQuotes: ["'Yo creo que en ese instante se volvió loco, porque los sonidos que brotaban de su garganta no eran de este mundo.'"],
+                    location: "Ciudades submarinas de los Profundos, especialmente cerca de la costa de Innsmouth",
+                    threatLevel: "Medio (amenaza directa para comunidades costeras)"
+                },
+                {
+                    name: "Los Profundos",
+                    category: "Razas alienígenas",
+                    alias: ["Deep Ones", "Gente de las Profundidades"],
+                    entityType: "Criaturas menores (raza híbrida anfibio-humana)",
+                    description: "Una raza de criaturas anfibias humanoides que habitan en las ciudades submarinas. Son inmortales y se reproducen con humanos, creando híbridos.",
+                    fullDescription: "Los Profundos son una raza de seres humanoides-anfibios que habitan en ciudades submarinas como Y'ha-nthlei. Son inmortales y sus seguidores humanos pueden lograr la inmortalidad a través de un pacto con ellos, aunque esto implica una eventual transformación gradual en un Profundo. Se reproducen con humanos, y sus híbridos nacen con rasgos humanos que se van volviendo más anfibios con la edad, hasta que finalmente se sumergen en el mar. Sirven a Dagon y Hydra y están vinculados a Cthulhu.",
+                    image: "https://placehold.co/2048x2048/1e293b/a78bfa?text=Profundos",
+                    firstAppearance: "La Sombra sobre Innsmouth (1936)",
+                    origin: "Los océanos de la Tierra, con posible origen cósmico antiguo",
+                    affiliation: "Sirvientes de Dagon y Madre Hydra; aliados de Cthulhu",
+                    supernaturalCharacteristics: ["Inmortalidad (a menos que sean destruidos)", "Adaptación a entornos acuáticos", "Hibridación con humanos"],
+                    madnessLevel: "Bajo a Medio (terror, shock, eventual transformación)",
+                    associatedSymbols: ["Joyas y artefactos de oro y plata con diseños marinos", "Rasgos faciales y corporales deformes"],
+                    cults: ["Culto de Dagon (principalmente en Innsmouth y otras comunidades pesqueras)"],
+                    mythologicalInspiration: "Mitos de sirenas, tritones y criaturas marinas, folclore de híbridos",
+                    relatedAuthors: ["H.P. Lovecraft"],
+                    modernAdaptations: ["Protagonistas en La Sombra sobre Innsmouth", "Figuras recurrentes en juegos y obras derivadas"],
+                    notableQuotes: ["'No había ningún pueblo en el mundo que me pareciera tan degenerado como la gente de Innsmouth.'"],
+                    location: "Ciudades submarinas como Y'ha-nthlei (cerca de Innsmouth), el Abismo del Diablo",
+                    threatLevel: "Medio (amenaza para comunidades, no para la humanidad global)"
+                }
+            ];
+
+            const showErrorMessage = (show) => {
+                errorMessage.classList.toggle('hidden', !show);
+            };
+
+            // Función principal para aplicar los filtros y renderizar las tarjetas
+            const applyFiltersAndRenderCards = () => {
+                const searchTerm = filterInput.value.toLowerCase();
+                const selectedCategory = categorySelect.value; // Obtener el valor seleccionado del dropdown
+
+                let filteredMonsters = monsters;
+
+                // Aplicar filtro por nombre
+                if (searchTerm) {
+                    filteredMonsters = filteredMonsters.filter(monster =>
+                        monster.name.toLowerCase().includes(searchTerm)
+                    );
+                }
+
+                // Aplicar filtro por categoría
+                if (selectedCategory) { // Si hay una categoría seleccionada (no "Todas las Categorías")
+                    filteredMonsters = filteredMonsters.filter(monster =>
+                        monster.category === selectedCategory
+                    );
+                }
+
+                renderMonsterCards(filteredMonsters);
+            };
+
+            // Función para renderizar las tarjetas de monstruos
+            const renderMonsterCards = (filteredMonsters = monsters) => {
+                monsterCardsContainer.innerHTML = ''; // Limpiar cualquier tarjeta existente
+                if (filteredMonsters.length === 0) {
+                    monsterCardsContainer.innerHTML = '<p class="text-center text-gray-400 text-lg col-span-full">No se encontraron monstruos que coincidan con la búsqueda.</p>';
+                    return;
+                }
+
+                filteredMonsters.forEach(monster => {
+                    const card = document.createElement('div');
+                    card.classList.add(
+                        'bg-gray-800', 'rounded-xl', 'shadow-lg', 'overflow-hidden', 'transform', 'hover:scale-105',
+                        'transition', 'duration-300', 'ease-in-out', 'flex', 'flex-col', 'justify-between'
+                    );
+
+                    card.innerHTML = `
+                        <div class="relative w-full pb-[100%] bg-gray-700 rounded-t-xl overflow-hidden">
+                            <img src="${monster.image}" alt="${monster.name}" class="absolute inset-0 object-contain w-full h-full" onerror="this.onerror=null;this.src='https://placehold.co/400x300/374151/9ca3af?text=Imagen+No+Disponible';">
+                        </div>
+                        <div class="p-6 flex-grow flex flex-col">
+                            <h3 class="text-2xl font-semibold mb-2 text-purple-400">${monster.name}</h3>
+                            <p class="text-gray-300 text-sm leading-relaxed flex-grow">${monster.description}</p>
+                        </div>
+                        <div class="p-6 pt-0">
+                            <button data-monster-name="${monster.name}" class="view-more-button w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300 ease-in-out">
+                                Ver más
+                            </button>
+                        </div>
+                    `;
+                    monsterCardsContainer.appendChild(card);
+                });
+
+                // Añadir event listeners a los botones "Ver más" después de que las tarjetas se hayan renderizado
+                document.querySelectorAll('.view-more-button').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const monsterName = event.target.dataset.monsterName;
+                        const selectedMonster = monsters.find(m => m.name === monsterName);
+                        if (selectedMonster) {
+                            // Construir el contenido detallado del modal
+                            let detailsHtml = `
+                                <img src="${selectedMonster.image}" alt="${selectedMonster.name}" class="w-full h-auto max-h-96 object-contain rounded-lg mb-4 mx-auto block" onerror="this.onerror=null;this.src='https://placehold.co/600x400/374151/9ca3af?text=Imagen+No+Disponible';">
+                                <h2 class="text-3xl font-bold mb-4 text-purple-400">${selectedMonster.name}</h2>
+
+                                <h3 class="modal-section-title">🏷️ Información básica</h3>
+                                <p class="modal-text"><b>Nombre:</b> ${selectedMonster.name}</p>
+                                ${selectedMonster.alias && selectedMonster.alias.length > 0 ? `<p class="modal-text"><b>Alias o nombres alternativos:</b> ${selectedMonster.alias.join(', ')}</p>` : ''}
+                                <p class="modal-text"><b>Tipo de entidad:</b> ${selectedMonster.entityType}</p>
+                                ${selectedMonster.category ? `<p class="modal-text"><b>Categoría:</b> ${selectedMonster.category}</p>` : ''}
+
+                                <h3 class="modal-section-title">🌌 Origen y cosmología</h3>
+                                <p class="modal-text"><b>Primera aparición:</b> ${selectedMonster.firstAppearance}</p>
+                                <p class="modal-text"><b>Planeta / dimensión de origen:</b> ${selectedMonster.origin}</p>
+                                <p class="modal-text"><b>Afiliación o jerarquía:</b> ${selectedMonster.affiliation}</p>
+
+                                <h3 class="modal-section-title">👁️ Descripción</h3>
+                                <p class="modal-text"><b>Apariencia física:</b> ${selectedMonster.fullDescription || selectedMonster.description}</p>
+                                ${selectedMonster.supernaturalCharacteristics && selectedMonster.supernaturalCharacteristics.length > 0 ? `
+                                    <p class="modal-sub-title">Características sobrenaturales:</p>
+                                    <ul class="modal-list">
+                                        ${selectedMonster.supernaturalCharacteristics.map(char => `<li>${char}</li>`).join('')}
+                                    </ul>` : ''}
+                                ${selectedMonster.knownManifestations && selectedMonster.knownManifestations.length > 0 ? `
+                                    <p class="modal-sub-title">Manifestaciones conocidas:</p>
+                                    <ul class="modal-list">
+                                        ${selectedMonster.knownManifestations.map(mani => `<li>${mani}</li>`).join('')}
+                                    </ul>` : ''}
+
+                                <h3 class="modal-section-title">🧠 Efectos en la mente humana</h3>
+                                <p class="modal-text"><b>Nivel de locura o corrupción:</b> ${selectedMonster.madnessLevel}</p>
+                                ${selectedMonster.associatedSymbols && selectedMonster.associatedSymbols.length > 0 ? `
+                                    <p class="modal-sub-title">Símbolos asociados:</p>
+                                    <ul class="modal-list">
+                                        ${selectedMonster.associatedSymbols.map(sym => `<li>${sym}</li>`).join('')}
+                                    </ul>` : ''}
+                                ${selectedMonster.cults && selectedMonster.cults.length > 0 ? `
+                                    <p class="modal-sub-title">Cultos o seguidores:</p>
+                                    <ul class="modal-list">
+                                        ${selectedMonster.cults.map(cult => `<li>${cult}</li>`).join('')}
+                                    </ul>` : ''}
+
+                                <h3 class="modal-section-title">🕯️ Contexto literario y cultural</h3>
+                                <p class="modal-text"><b>Inspiración mitológica o literaria:</b> ${selectedMonster.mythologicalInspiration}</p>
+                                <p class="modal-text"><b>Autores relacionados:</b> ${selectedMonster.relatedAuthors.join(', ')}</p>
+                                ${selectedMonster.modernAdaptations && selectedMonster.modernAdaptations.length > 0 ? `
+                                    <p class="modal-sub-title">Adaptaciones modernas:</p>
+                                    <ul class="modal-list">
+                                        ${selectedMonster.modernAdaptations.map(adapt => `<li>${adapt}</li>`).join('')}
+                                    </ul>` : ''}
+
+                                <h3 class="modal-section-title">📚 Extras opcionales</h3>
+                                ${selectedMonster.notableQuotes && selectedMonster.notableQuotes.length > 0 ? `
+                                    <p class="modal-sub-title">Citas destacadas:</p>
+                                    <ul class="modal-list">
+                                        ${selectedMonster.notableQuotes.map(quote => `<li>"${quote}"</li>`).join('')}
+                                    </ul>` : ''}
+                                <p class="modal-text"><b>Mapa / ubicación geográfica:</b> ${selectedMonster.location}</p>
+                                <p class="modal-text"><b>Nivel de amenaza:</b> ${selectedMonster.threatLevel}</p>
+                            `;
+
+                            modalDetailsContent.innerHTML = detailsHtml; // Insertar el nuevo HTML en el contenedor
+                            monsterDetailModal.classList.remove('hidden');
+                            document.body.classList.add('no-scroll');
+                            setTimeout(() => {
+                                monsterDetailModal.classList.add('opacity-100');
+                            }, 10);
+                        }
+                    });
+                });
+            };
+
+            // Función para cerrar el modal
+            const closeMonsterDetailModal = () => {
+                monsterDetailModal.classList.remove('opacity-100');
+                document.body.classList.remove('no-scroll');
+                setTimeout(() => {
+                    monsterDetailModal.classList.add('hidden');
+                    modalDetailsContent.innerHTML = ''; // Limpiar el contenido del modal al cerrarlo
+                }, 300);
+            };
+
+            // Manejador del botón de login
+            loginButton.addEventListener('click', () => {
+                const enteredPassword = passwordInput.value;
+                if (enteredPassword === CORRECT_PASSWORD) {
+                    showErrorMessage(false);
+                    loginWrapper.classList.add('opacity-0');
+                    setTimeout(() => {
+                        loginWrapper.classList.add('hidden');
+                        catalogSection.classList.remove('hidden');
+                        setTimeout(() => {
+                            catalogSection.classList.add('opacity-100');
+                            applyFiltersAndRenderCards(); // Llama a la función de filtrado combinada
+                        }, 50);
+                    }, 500);
+                } else {
+                    showErrorMessage(true);
+                    passwordInput.value = '';
+                }
+            });
+
+            // Permitir presionar Enter en el campo de contraseña para iniciar sesión
+            passwordInput.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter') {
+                    loginButton.click();
+                }
+            });
+
+            // Manejador del campo de filtro por nombre
+            filterInput.addEventListener('input', applyFiltersAndRenderCards);
+
+            // Manejador del filtro por categoría (dropdown)
+            categorySelect.addEventListener('change', applyFiltersAndRenderCards);
+
+            // Manejador para cerrar el modal usando el botón X
+            closeModalButton.addEventListener('click', closeMonsterDetailModal);
+
+            // Cerrar modal al hacer clic fuera del contenido
+            monsterDetailModal.addEventListener('click', (event) => {
+                if (event.target === monsterDetailModal) {
+                    closeMonsterDetailModal();
+                }
+            });
+
+            // Cerrar modal al presionar la tecla ESC
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && !monsterDetailModal.classList.contains('hidden')) {
+                    closeMonsterDetailModal();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
